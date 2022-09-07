@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Auto-croping Invoice/Receipt</title>
+  </head>
+
+  <body>
+    <h2>Auto-croping Invoice/Receipt</h2>
+    <p id="status">OpenCV.js is loading...</p>
+    <input type="file" id="fileInput" name="file" />
+    <br />
+    <div>
+      <div class="input-image">
+        <h4>Input Image</h4>
+        <div class="caption">
+          <img id="canvasInput" alt="No Image" style="display: none" />
+        </div>
+      </div>
+      <div class="output-image">
+        <h4>Output Image</h4>
+        <div class="caption">
+          <canvas id="canvasOutput"></canvas>
+        </div>
+      </div>
+      <h3>Intermediate Results</h3>
+      <div class="intermediate-image">
+        <h4>Step 1: Greyscaling</h4>
+        <div class="caption">
+          <canvas id="canvasOutputG"></canvas>
+        </div>
+      </div>
+      <div class="intermediate-image">
+        <h4>Step 2: Bluring</h4>
+        <div class="caption">
+          <canvas id="canvasOutputB"></canvas>
+        </div>
+      </div>
+      <div class="intermediate-image">
+        <h4>Step 3: Morphing</h4>
+        <div class="caption">
+          <canvas id="canvasOutputM"></canvas>
+        </div>
+      </div>
+      <div class="intermediate-image">
+        <h4>Step 4: Edge Detection</h4>
+        <div class="caption">
+          <canvas id="canvasOutputE"></canvas>
+        </div>
+      </div>
+      <div class="intermediate-image">
+        <h4>Step 5: Largest Contour</h4>
+        <div class="caption">
+          <canvas id="canvasOutputC"></canvas>
+        </div>
+      </div>
+    </div>
+    <script type="text/javascript" src="/index.js"></script>
+    <script
+      async
+      src="/opencv.js"
+      onload="onOpenCvReady();"
+      type="text/javascript"
+    ></script>
+  </body>
+</html>
