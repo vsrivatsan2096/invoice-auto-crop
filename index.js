@@ -1,7 +1,3 @@
-function onOpenCvReady() {
-  document.getElementById('status').innerHTML = 'OpenCV.js is ready.';
-}
-
 let imgElement = document.getElementById('canvasInput');
 let inputElement = document.getElementById('fileInput');
 
@@ -10,11 +6,13 @@ inputElement.addEventListener(
   (e) => {
     imgElement.src = URL.createObjectURL(e.target.files[0]);
     imgElement.style.display = 'block';
+    document.getElementById('image-size').innerText =
+      e.target.files.item(0).size / (1024 * 1024);
   },
   false
 );
 
-imgElement.onload = function () {
+imgElement.onload = function (data) {
   let startTime = new Date();
   doGrayScaling();
   doBluring();
@@ -24,10 +22,16 @@ imgElement.onload = function () {
   doPerpectiveTransform();
   let stopTime = new Date();
 
-  console.log((stopTime - startTime) / 1000 + ' seconds');
+  if (isValid) {
+    document.getElementById('time-taken').innerText =
+      (stopTime - startTime) / 1000;
+  } else {
+    document.getElementById('time-taken').innerText = 'invalid';
+  }
 };
 
 let mainContour;
+let isValid = true;
 
 function doGrayScaling() {
   let src = cv.imread('canvasInput');
@@ -128,6 +132,7 @@ function doContourDetection() {
 
   if (contoursMetadata.length == 0) {
     alert('Image is invalid');
+    isValid = false;
     return;
   }
 
@@ -181,6 +186,7 @@ function doPerpectiveTransform() {
     foundContour = approx;
   } else {
     alert('Image is invalid');
+    isValid = false;
     return;
   }
 
