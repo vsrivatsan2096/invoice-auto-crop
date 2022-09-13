@@ -1,110 +1,6 @@
-export function doPerspectiveTransform() {
-  if (globalPoints == null) {
-    return;
-  }
-
-  let mainSrc = cv.imread('canvasInput');
-  let dst = new cv.Mat();
-
-  //Order the corners
-  let cornerArray = [
-    { corner: globalPoints[0] },
-    { corner: globalPoints[1] },
-    { corner: globalPoints[2] },
-    { corner: globalPoints[3] },
-  ];
-  //Sort by Y position (to get top-down)
-  cornerArray
-    .sort((item1, item2) => {
-      return item1.corner.y < item2.corner.y
-        ? -1
-        : item1.corner.y > item2.corner.y
-        ? 1
-        : 0;
-    })
-    .slice(0, 5);
-
-  //Determine left/right based on x position of top and bottom 2
-  let tl =
-    cornerArray[0].corner.x < cornerArray[1].corner.x
-      ? cornerArray[0]
-      : cornerArray[1];
-  let tr =
-    cornerArray[0].corner.x > cornerArray[1].corner.x
-      ? cornerArray[0]
-      : cornerArray[1];
-  let bl =
-    cornerArray[2].corner.x < cornerArray[3].corner.x
-      ? cornerArray[2]
-      : cornerArray[3];
-  let br =
-    cornerArray[2].corner.x > cornerArray[3].corner.x
-      ? cornerArray[2]
-      : cornerArray[3];
-
-  //Calculate the max width/height
-  let widthBottom = Math.hypot(
-    br.corner.x - bl.corner.x,
-    br.corner.y - bl.corner.y
-  );
-  let widthTop = Math.hypot(
-    tr.corner.x - tl.corner.x,
-    tr.corner.y - tl.corner.y
-  );
-  let theWidth = widthBottom > widthTop ? widthBottom : widthTop;
-  let heightRight = Math.hypot(
-    tr.corner.x - br.corner.x,
-    tr.corner.y - br.corner.y
-  );
-  let heightLeft = Math.hypot(
-    tl.corner.x - bl.corner.x,
-    tr.corner.y - bl.corner.y
-  );
-  let theHeight = heightRight > heightLeft ? heightRight : heightLeft;
-
-  //Transform!
-  let finalDestCoords = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    0,
-    0,
-    theWidth - 1,
-    0,
-    theWidth - 1,
-    theHeight - 1,
-    0,
-    theHeight - 1,
-  ]); //
-  let srcCoords = cv.matFromArray(4, 1, cv.CV_32FC2, [
-    tl.corner.x,
-    tl.corner.y,
-    tr.corner.x,
-    tr.corner.y,
-    br.corner.x,
-    br.corner.y,
-    bl.corner.x,
-    bl.corner.y,
-  ]);
-  let dsize = new cv.Size(theWidth, theHeight);
-  let M = cv.getPerspectiveTransform(srcCoords, finalDestCoords);
-  cv.warpPerspective(
-    mainSrc,
-    dst,
-    M,
-    dsize,
-    cv.INTER_LINEAR,
-    cv.BORDER_CONSTANT,
-    new cv.Scalar()
-  );
-
-  document.getElementById('output-image').style.display = 'block';
-  cv.imshow('canvasOutput', dst);
-
-  mainSrc.delete();
-  M.delete();
-  dst.delete();
-}
-
 let imgElement = document.getElementById('canvasInput');
 let inputElement = document.getElementById('fileInput');
+let buttonElement = document.getElementById('transformAndCropButton');
 
 inputElement.addEventListener(
   'change',
@@ -116,6 +12,8 @@ inputElement.addEventListener(
   },
   false
 );
+
+buttonElement.addEventListener('click', doPerspectiveTransform);
 
 imgElement.onload = function (data) {
   let startTime = new Date();
@@ -389,7 +287,6 @@ imageProcessingSteps['RECTANGLE_DETECTION'] = function doRectangleDetection(
   cv.cvtColor(mainSrc, dst, cv.COLOR_RGBA2RGB, 0);
 
   let sortedContours = _findLargestRectangle(contours);
-  mainContour = contours.get(sortedContours[0][1]);
 
   // draw contours with random Scalar
   let colors = [
@@ -506,4 +403,109 @@ function selectImage() {
   }
 
   redraw();
+}
+
+function doPerspectiveTransform() {
+  if (globalPoints == null) {
+    return;
+  }
+
+  let mainSrc = cv.imread('canvasInput');
+  let dst = new cv.Mat();
+
+  //Order the corners
+  let cornerArray = [
+    { corner: globalPoints[0] },
+    { corner: globalPoints[1] },
+    { corner: globalPoints[2] },
+    { corner: globalPoints[3] },
+  ];
+  //Sort by Y position (to get top-down)
+  cornerArray
+    .sort((item1, item2) => {
+      return item1.corner.y < item2.corner.y
+        ? -1
+        : item1.corner.y > item2.corner.y
+        ? 1
+        : 0;
+    })
+    .slice(0, 5);
+
+  //Determine left/right based on x position of top and bottom 2
+  let tl =
+    cornerArray[0].corner.x < cornerArray[1].corner.x
+      ? cornerArray[0]
+      : cornerArray[1];
+  let tr =
+    cornerArray[0].corner.x > cornerArray[1].corner.x
+      ? cornerArray[0]
+      : cornerArray[1];
+  let bl =
+    cornerArray[2].corner.x < cornerArray[3].corner.x
+      ? cornerArray[2]
+      : cornerArray[3];
+  let br =
+    cornerArray[2].corner.x > cornerArray[3].corner.x
+      ? cornerArray[2]
+      : cornerArray[3];
+
+  //Calculate the max width/height
+  let widthBottom = Math.hypot(
+    br.corner.x - bl.corner.x,
+    br.corner.y - bl.corner.y
+  );
+  let widthTop = Math.hypot(
+    tr.corner.x - tl.corner.x,
+    tr.corner.y - tl.corner.y
+  );
+  let theWidth = widthBottom > widthTop ? widthBottom : widthTop;
+  let heightRight = Math.hypot(
+    tr.corner.x - br.corner.x,
+    tr.corner.y - br.corner.y
+  );
+  let heightLeft = Math.hypot(
+    tl.corner.x - bl.corner.x,
+    tr.corner.y - bl.corner.y
+  );
+  let theHeight = heightRight > heightLeft ? heightRight : heightLeft;
+
+  //Transform!
+  let finalDestCoords = cv.matFromArray(4, 1, cv.CV_32FC2, [
+    0,
+    0,
+    theWidth - 1,
+    0,
+    theWidth - 1,
+    theHeight - 1,
+    0,
+    theHeight - 1,
+  ]); //
+  let srcCoords = cv.matFromArray(4, 1, cv.CV_32FC2, [
+    tl.corner.x,
+    tl.corner.y,
+    tr.corner.x,
+    tr.corner.y,
+    br.corner.x,
+    br.corner.y,
+    bl.corner.x,
+    bl.corner.y,
+  ]);
+  let dsize = new cv.Size(theWidth, theHeight);
+  let M = cv.getPerspectiveTransform(srcCoords, finalDestCoords);
+  cv.warpPerspective(
+    mainSrc,
+    dst,
+    M,
+    dsize,
+    cv.INTER_LINEAR,
+    cv.BORDER_CONSTANT,
+    new cv.Scalar()
+  );
+
+  document.getElementById('output-image').style.display = 'block';
+  cv.imshow('canvasOutput', dst);
+
+  mainSrc.delete();
+  M.delete();
+  dst.delete();
 }
