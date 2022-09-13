@@ -351,6 +351,36 @@ function selectImage() {
     drag_point = -1;
   };
 
+  canvas.ontouchstart = function (e) {
+    if (e.touches) e = e.touches[0];
+
+    var pos = getPosition(e);
+    drag_point = getPointAt(pos.x, pos.y);
+
+    return false;
+  };
+
+  canvas.ontouchmove = function (e) {
+    if (e.touches) e = e.touches[0];
+
+    if (drag_point != -1) {
+      var pos = getPosition(e);
+      points[drag_point].x = pos.x;
+      points[drag_point].y = pos.y;
+      redraw();
+    }
+
+    return false;
+  };
+
+  canvas.ontouchend = function (e) {
+    if (e.touches) e = e.touches[0];
+
+    drag_point = -1;
+
+    return false;
+  };
+
   function getPosition(event) {
     var rect = canvas.getBoundingClientRect();
     var x = event.clientX - rect.left;
