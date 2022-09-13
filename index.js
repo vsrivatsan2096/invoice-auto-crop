@@ -14,51 +14,110 @@ inputElement.addEventListener(
 
 imgElement.onload = function (data) {
   let startTime = new Date();
-  doGrayScaling();
-  doBluring();
-  doMorphing();
-  doEdgeDetection();
-  doContourDetection();
-  doPerpectiveTransform();
+
+  preProcessImage();
+  processImage();
+  postProcessImage();
+
   let stopTime = new Date();
 
+  checkValidty(startTime, stopTime);
+};
+
+function checkValidty(startTime, stopTime) {
   if (isValid) {
     document.getElementById('time-taken').innerText =
       (stopTime - startTime) / 1000;
   } else {
     document.getElementById('time-taken').innerText = 'invalid';
   }
-};
+
+  document.getElementById('intermediateResults').style.display = 'block';
+}
 
 let mainContour;
 let isValid = true;
+let imageProcessingSteps = {};
+let bluringType = 'Gaussian';
+let globalContours;
+let globalHierarchy;
+let globalPoints;
 
-function doGrayScaling() {
-  let src = cv.imread('canvasInput');
+function preProcessImage() {
+  document.getElementById('input-image').style.display = 'block';
+
+  let mat = cv.imread('canvasInput');
+  cv.imshow('canvasIntermediate0', mat);
+  mat.delete();
+}
+
+function processImage() {
+  const STEPS = [
+    'GRAY_SCALING',
+    'BLURING',
+    'MORPHING',
+    'EDGE_DETECTION',
+    'CONTOUR_DETECTION',
+    'APPROX_POLY_DP_DETECTION',
+    'RECTANGLE_DETECTION',
+  ];
+
+  for (let i = 0; i < STEPS.length; i++) {
+    let canvasInputString = 'canvasIntermediate' + i;
+    let canvasOutputString = 'canvasIntermediate' + (i + 1);
+
+    let dst = imageProcessingSteps[STEPS[i]](canvasInputString);
+    cv.imshow(canvasOutputString, dst);
+    dst.delete();
+  }
+}
+
+function postProcessImage() {
+  let mat = cv.imread('canvasIntermediate7');
+  cv.imshow('canvasIntermediate', mat);
+  mat.delete();
+
+  document.getElementById('intermediate-image').style.display = 'block';
+
+  selectImage();
+}
+
+imageProcessingSteps['GRAY_SCALING'] = function doGrayScaling(
+  canvasInputString
+) {
+  let src = cv.imread(canvasInputString);
   let dst = new cv.Mat();
 
   cv.cvtColor(src, dst, cv.COLOR_BGR2GRAY, 0);
 
-  cv.imshow('canvasOutputG', dst);
   src.delete();
-  dst.delete();
-}
 
-function doBluring() {
-  let src = cv.imread('canvasOutputG');
+  return dst;
+};
+
+imageProcessingSteps['BLURING'] = function doGaussianBluring(
+  canvasInputString
+) {
+  let src = cv.imread(canvasInputString);
   let dst = new cv.Mat();
 
-  let ksize = new cv.Size(5, 5);
-  // You can try more different parameters
-  cv.GaussianBlur(src, dst, ksize, 0, 0, cv.BORDER_DEFAULT);
-  //cv.bilateralFilter(src, dst, 9, 75, 75, cv.BORDER_DEFAULT);
-  cv.imshow('canvasOutputB', dst);
-  src.delete();
-  dst.delete();
-}
+  switch (bluringType) {
+    case 'Gaussian':
+      let ksize = new cv.Size(5, 5);
+      cv.GaussianBlur(src, dst, ksize, 0, 0, cv.BORDER_DEFAULT);
+      break;
+    case 'BilateralFilter':
+      cv.cvtColor(src, src, cv.COLOR_RGBA2RGB, 0);
+      cv.bilateralFilter(src, dst, 9, 75, 75, cv.BORDER_DEFAULT);
+      break;
+  }
 
-function doMorphing() {
-  let src = cv.imread('canvasOutputB');
+  src.delete();
+  return dst;
+};
+
+imageProcessingSteps['MORPHING'] = function doMorphing(canvasInputString) {
+  let src = cv.imread(canvasInputString);
   let dst = new cv.Mat();
 
   let anchor = new cv.Point(-1, -1);
@@ -75,27 +134,35 @@ function doMorphing() {
     cv.BORDER_CONSTANT,
     cv.morphologyDefaultBorderValue()
   );
-  cv.imshow('canvasOutputM', dst);
-  src.delete();
-  dst.delete();
-  M.delete();
-}
 
-function doEdgeDetection() {
-  let src = cv.imread('canvasOutputM');
+  src.delete();
+  M.delete();
+
+  return dst;
+};
+
+imageProcessingSteps['EDGE_DETECTION'] = function doEdgeDetection(
+  canvasInputString
+) {
+  let src = cv.imread(canvasInputString);
   let dst = new cv.Mat();
   cv.cvtColor(src, src, cv.COLOR_RGB2GRAY, 0);
   // You can try more different parameters
   cv.Canny(src, dst, 100, 200, 3, false);
-  cv.imshow('canvasOutputE', dst);
-  src.delete();
-  dst.delete();
-}
 
-function doContourDetection() {
+  src.delete();
+  return dst;
+};
+
+imageProcessingSteps['CONTOUR_DETECTION'] = function doContourDetection(
+  canvasInputString
+) {
   let mainSrc = cv.imread('canvasInput');
-  let src = cv.imread('canvasOutputE');
+
+  let src = cv.imread(canvasInputString);
   let dst = cv.Mat.zeros(src.rows, src.cols, cv.CV_8UC3);
+
+  cv.cvtColor(mainSrc, dst, cv.COLOR_RGBA2RGB, 0);
 
   cv.cvtColor(src, src, cv.COLOR_RGBA2GRAY, 0);
   cv.threshold(src, src, 120, 200, cv.THRESH_BINARY);
@@ -112,97 +179,165 @@ function doContourDetection() {
     cv.CHAIN_APPROX_SIMPLE
   );
 
-  let contoursMetadata = [];
-
+  // Draw all contours
   for (let i = 0; i < contours.size(); ++i) {
-    let rows = contours.get(i).rows;
-
-    contoursMetadata.push([rows, i]);
-  }
-
-  contoursMetadata.sort((a, b) => {
-    let i = b[0] - a[0];
-
-    if (i == 0) {
-      return a[1] - b[1];
-    }
-
-    return i;
-  });
-
-  if (contoursMetadata.length == 0) {
-    alert('Image is invalid');
-    isValid = false;
-    return;
-  }
-
-  // draw contours with random Scalar
-  for (let i = 0; i < 1; ++i) {
     let color = new cv.Scalar(
       Math.round(Math.random() * 255),
       Math.round(Math.random() * 255),
       Math.round(Math.random() * 255)
     );
-    cv.drawContours(
-      mainSrc,
-      contours,
-      contoursMetadata[i][1],
-      color,
-      5,
-      cv.LINE_AA,
-      hierarchy,
-      100
-    );
+    cv.drawContours(dst, contours, i, color, 5, cv.LINE_AA, hierarchy, 100);
   }
 
-  mainContour = contours.get(contoursMetadata[0][1]);
+  globalContours = contours;
+  globalHierarchy = hierarchy;
 
-  cv.imshow('canvasOutputC', mainSrc);
   src.delete();
-  dst.delete();
+  mainSrc.delete();
+
+  return dst;
+};
+
+imageProcessingSteps['APPROX_POLY_DP_DETECTION'] =
+  function doApproxPolyDPDetection(canvasInputString) {
+    let mainSrc = cv.imread('canvasInput');
+
+    let dst = cv.Mat.zeros(mainSrc.rows, mainSrc.cols, cv.CV_8UC3);
+
+    cv.cvtColor(mainSrc, dst, cv.COLOR_RGBA2RGB, 0);
+
+    let approxPolyDPs = new cv.MatVector();
+
+    for (let i = 0; i < globalContours.size(); i++) {
+      let approxPolyDP = new cv.Mat();
+      let contour = globalContours.get(i);
+
+      cv.approxPolyDP(
+        contour,
+        approxPolyDP,
+        0.05 * cv.arcLength(contour, false),
+        true
+      );
+
+      approxPolyDPs.push_back(approxPolyDP);
+    }
+
+    globalContours = approxPolyDPs;
+
+    // Draw all contours
+    for (let i = 0; i < approxPolyDPs.size(); ++i) {
+      let color = new cv.Scalar(
+        Math.round(Math.random() * 255),
+        Math.round(Math.random() * 255),
+        Math.round(Math.random() * 255)
+      );
+      cv.drawContours(
+        dst,
+        approxPolyDPs,
+        i,
+        color,
+        5,
+        cv.LINE_AA,
+        globalHierarchy,
+        100
+      );
+    }
+
+    mainSrc.delete();
+
+    return dst;
+  };
+
+imageProcessingSteps['RECTANGLE_DETECTION'] = function doRectangleDetection(
+  canvasInputString
+) {
+  // Helper function
+  function _findLargestRectangle(contours) {
+    let contoursMetadata = [];
+
+    for (let i = 0; i < contours.size(); ++i) {
+      let rect = cv.minAreaRect(contours.get(i));
+
+      let area = rect.size.height * rect.size.width;
+
+      contoursMetadata.push([area, i]);
+    }
+
+    contoursMetadata.sort((a, b) => {
+      let i = b[0] - a[0];
+
+      if (i == 0) {
+        return a[1] - b[1];
+      }
+
+      return i;
+    });
+
+    return contoursMetadata;
+  }
+
+  // Draw main contour
+  let contours = globalContours;
+  let hierarchy = globalHierarchy;
+
+  let mainSrc = cv.imread('canvasInput');
+  let dst = cv.Mat.zeros(mainSrc.rows, mainSrc.cols, cv.CV_8UC3);
+  cv.cvtColor(mainSrc, dst, cv.COLOR_RGBA2RGB, 0);
+
+  let sortedContours = _findLargestRectangle(contours);
+  mainContour = contours.get(sortedContours[0][1]);
+
+  // draw contours with random Scalar
+  let colors = [
+    new cv.Scalar(255, 0, 0),
+    new cv.Scalar(0, 255, 0),
+    new cv.Scalar(0, 0, 255),
+  ];
+
+  for (let i = 0; i < Math.min(3, contours.size()); ++i) {
+    let rotatedRect = cv.minAreaRect(contours.get(sortedContours[i][1]));
+
+    let vertices = cv.RotatedRect.points(rotatedRect);
+
+    for (let j = 0; j < 4; j++) {
+      cv.line(
+        dst,
+        vertices[j],
+        vertices[(j + 1) % 4],
+        colors[i],
+        2,
+        cv.LINE_AA,
+        0
+      );
+    }
+  }
+
+  let largestRoatedRectange = cv.minAreaRect(
+    contours.get(sortedContours[0][1])
+  );
+  globalPoints = cv.RotatedRect.points(largestRoatedRectange);
+
   contours.delete();
   hierarchy.delete();
   mainSrc.delete();
-}
 
-function doPerpectiveTransform() {
-  if (mainContour == null) {
+  return dst;
+};
+
+export function doPerspectiveTransform() {
+  if (globalPoints == null) {
     return;
   }
 
-  let src = cv.imread('canvasInput');
+  let mainSrc = cv.imread('canvasInput');
   let dst = new cv.Mat();
-
-  let approx = new cv.Mat();
-  cv.approxPolyDP(
-    mainContour,
-    approx,
-    0.05 * cv.arcLength(mainContour, false),
-    true
-  );
-
-  if (approx.rows == 4) {
-    console.log('Found a 4-corner approx');
-    foundContour = approx;
-  } else {
-    alert('Image is invalid');
-    isValid = false;
-    return;
-  }
-
-  //Find the corners
-  //foundCountour has 2 channels (seemingly x/y), has a depth of 4, and a type of 12.  Seems to show it's a CV_32S "type", so the valid data is in data32S??
-  let corner1 = new cv.Point(foundContour.data32S[0], foundContour.data32S[1]);
-  let corner2 = new cv.Point(foundContour.data32S[2], foundContour.data32S[3]);
-  let corner3 = new cv.Point(foundContour.data32S[4], foundContour.data32S[5]);
-  let corner4 = new cv.Point(foundContour.data32S[6], foundContour.data32S[7]);
 
   //Order the corners
   let cornerArray = [
-    { corner: corner1 },
-    { corner: corner2 },
-    { corner: corner3 },
-    { corner: corner4 },
+    { corner: globalPoints[0] },
+    { corner: globalPoints[1] },
+    { corner: globalPoints[2] },
+    { corner: globalPoints[3] },
   ];
   //Sort by Y position (to get top-down)
   cornerArray
@@ -277,7 +412,7 @@ function doPerpectiveTransform() {
   let dsize = new cv.Size(theWidth, theHeight);
   let M = cv.getPerspectiveTransform(srcCoords, finalDestCoords);
   cv.warpPerspective(
-    src,
+    mainSrc,
     dst,
     M,
     dsize,
@@ -286,8 +421,90 @@ function doPerpectiveTransform() {
     new cv.Scalar()
   );
 
+  document.getElementById('output-image').style.display = 'block';
   cv.imshow('canvasOutput', dst);
-  src.delete();
-  dst.delete();
+
+  mainSrc.delete();
   M.delete();
+  dst.delete();
+}
+
+// Editing canvas
+function selectImage() {
+  let points = globalPoints;
+
+  let drag_point = -1;
+  let pointSize = 6;
+  let canvas = document.getElementById('canvasIntermediate');
+  let bgImage = document.getElementById('canvasInput');
+  var ctx = canvas.getContext('2d');
+
+  canvas.onmousedown = function (e) {
+    var pos = getPosition(e);
+    drag_point = getPointAt(pos.x, pos.y);
+  };
+  canvas.onmousemove = function (e) {
+    if (drag_point != -1) {
+      var pos = getPosition(e);
+      points[drag_point].x = pos.x;
+      points[drag_point].y = pos.y;
+      redraw();
+    }
+  };
+  canvas.onmouseup = function (e) {
+    drag_point = -1;
+  };
+
+  function getPosition(event) {
+    var rect = canvas.getBoundingClientRect();
+    var x = event.clientX - rect.left;
+    var y = event.clientY - rect.top;
+    return { x, y };
+  }
+
+  function getPointAt(x, y) {
+    for (var i = 0; i < points.length; i++) {
+      if (
+        Math.abs(points[i].x - x) < pointSize &&
+        Math.abs(points[i].y - y) < pointSize
+      )
+        return i;
+    }
+    return -1;
+  }
+
+  function redraw() {
+    if (points.length > 0) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bgImage, 0, 0, canvas.width, canvas.height);
+      drawLines();
+      drawCircles();
+
+      globalPoints = points;
+    }
+  }
+
+  function drawLines() {
+    ctx.beginPath();
+    ctx.moveTo(points[0].x, points[0].y);
+    ctx.strokeStyle = 'blue';
+    ctx.lineWidth = 2;
+    points.forEach((p) => {
+      ctx.lineTo(p.x, p.y);
+    });
+    ctx.closePath();
+    ctx.stroke();
+  }
+
+  function drawCircles() {
+    ctx.strokeStyle = 'red';
+    ctx.lineWidth = 4;
+    points.forEach((p) => {
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, pointSize, 0, Math.PI * 2, true);
+      ctx.stroke();
+    });
+  }
+
+  redraw();
 }

@@ -1,64 +1,111 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8" />
-    <title>Auto-croping Invoice/Receipt</title>
-  </head>
 
-  <body>
-    <h2>Auto-croping Invoice/Receipt</h2>
+<head>
+  <meta charset="utf-8" />
+  <title>Auto-croping Invoice/Receipt</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <script type="text/javascript" src="https://docs.opencv.org/4.6.0/opencv.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
+      integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
+      crossorigin="anonymous"></script>
+</head>
+
+<body>
+  <div class="container-fluid">
+    <h4>Auto-croping Invoice/Receipt</h4>
     <p>Time Taken (in secs) : <span id="time-taken"></span></p>
     <p>Image Size (in MB) : <span id="image-size"></span></p>
     <input type="file" id="fileInput" name="file" />
+    <button onclick="doPerspectiveTransform()">Transform and Crop</button>
     <br />
-    <div>
-      <div class="input-image">
-        <h4>Input Image</h4>
+    <div class="mt-3">
+      <div id="input-image" class="row" style="display: none">
+        <h6>Input Image</h6>
         <div class="caption">
-          <img id="canvasInput" alt="No Image" style="display: none" />
+          <img class="img-fluid" id="canvasInput" alt="No Image" />
         </div>
       </div>
-      <div class="output-image">
-        <h4>Output Image</h4>
+      <div id="intermediate-image" class="row" style="display: none">
+        <h6>Intermediate Image</h6>
+        <div class="caption">
+          <canvas id="canvasIntermediate" alt="No Image" />
+        </div>
+      </div>
+      <div id="output-image" class="row" style="display: none">
+        <h6>Output Image</h6>
         <div class="caption">
           <canvas id="canvasOutput"></canvas>
         </div>
       </div>
-      <h3>Intermediate Results</h3>
-      <div class="intermediate-image">
-        <h4>Step 1: Greyscaling</h4>
-        <div class="caption">
-          <canvas id="canvasOutputG"></canvas>
-        </div>
-      </div>
-      <div class="intermediate-image">
-        <h4>Step 2: Bluring</h4>
-        <div class="caption">
-          <canvas id="canvasOutputB"></canvas>
-        </div>
-      </div>
-      <div class="intermediate-image">
-        <h4>Step 3: Morphing</h4>
-        <div class="caption">
-          <canvas id="canvasOutputM"></canvas>
-        </div>
-      </div>
-      <div class="intermediate-image">
-        <h4>Step 4: Edge Detection</h4>
-        <div class="caption">
-          <canvas id="canvasOutputE"></canvas>
-        </div>
-      </div>
-      <div class="intermediate-image">
-        <h4>Step 5: Largest Contour</h4>
-        <div class="caption">
-          <canvas id="canvasOutputC"></canvas>
+      <div class="row mt-3 mb-3">
+        <div class="accordion" id="intermediateResults" style="display: none;">
+          <div class="accordion-item">
+            <h2 class="accordion-header" id="intermediateResult1">
+              <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne"
+                aria-expanded="true" aria-controls="collapseOne">
+                Intermediate Results
+              </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse" aria-labelledby="intermediateResult1"
+              data-bs-parent="#intermediateResults">
+              <div class="accordion-body row">
+                <div class="intermediate-image col">
+                  <h6>Step 0: <span id="step0"></span></h6>
+                  <div class="caption">
+                    <canvas id="canvasIntermediate0"></canvas>
+                  </div>
+                </div>
+                <div class="intermediate-image col">
+                  <h6>Step 1: <span id="step1"></span></h6>
+                  <div class="caption">
+                    <canvas id="canvasIntermediate1"></canvas>
+                  </div>
+                </div>
+                <div class="intermediate-image col">
+                  <h6>Step 2: <span id="step2"></h6>
+                  <div class="caption">
+                    <canvas id="canvasIntermediate2"></canvas>
+                  </div>
+                </div>
+                <div class="intermediate-image col">
+                  <h6>Step 3: <span id="step3"></h6>
+                  <div class="caption">
+                    <canvas id="canvasIntermediate3"></canvas>
+                  </div>
+                </div>
+                <div class="intermediate-image col">
+                  <h6>Step 4: <span id="step4"></h6>
+                  <div class="caption">
+                    <canvas id="canvasIntermediate4"></canvas>
+                  </div>
+                </div>
+                <div class="intermediate-image col">
+                  <h6>Step 5: <span id="step5"></h6>
+                  <div class="caption">
+                    <canvas id="canvasIntermediate5"></canvas>
+                  </div>
+                </div>
+                <div class="intermediate-image col">
+                  <h6>Step 6 : <span id="step6"></h6>
+                  <div class="caption">
+                    <canvas id="canvasIntermediate6"></canvas>
+                  </div>
+                </div>
+                <div class="intermediate-image col">
+                  <h6>Step 7 : <span id="step7"></h6>
+                  <div class="caption">
+                    <canvas id="canvasIntermediate7"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
-    <script
-      type="module"
-      src="https://docs.opencv.org/4.6.0/opencv.js"
-    ></script>
-  </body>
+  </div>
+</body>
+
 </html>
