@@ -82,6 +82,8 @@ function postProcessImage() {
   document.getElementById('intermediate-image').style.display = 'block';
 
   selectImage();
+
+  buttonElement.style.display = 'inline';
 }
 
 imageProcessingSteps['GRAY_SCALING'] = function doGrayScaling(
