@@ -1,6 +1,7 @@
 let imgElement = document.getElementById('canvasInput');
 let inputElement = document.getElementById('fileInput');
-let buttonElement = document.getElementById('transformAndCropButton');
+let cropButtonElement = document.getElementById('transformAndCropButton');
+let downloadButtonElement = document.getElementById('downloadCroped');
 
 inputElement.addEventListener(
   'change',
@@ -13,7 +14,9 @@ inputElement.addEventListener(
   false
 );
 
-buttonElement.addEventListener('click', doPerspectiveTransform);
+cropButtonElement.addEventListener('click', doPerspectiveTransform);
+
+downloadButtonElement.addEventListener('click', downloadCroppedImage);
 
 imgElement.onload = function (data) {
   let startTime = new Date();
@@ -83,7 +86,9 @@ function postProcessImage() {
 
   selectImage();
 
-  buttonElement.style.display = 'inline';
+  cropButtonElement.style.display = 'inline';
+
+  downloadButtonElement.style.display = 'inline';
 }
 
 imageProcessingSteps['GRAY_SCALING'] = function doGrayScaling(
@@ -540,4 +545,12 @@ function doPerspectiveTransform() {
   mainSrc.delete();
   M.delete();
   dst.delete();
+}
+
+function downloadCroppedImage() {
+  var link = document.createElement('a');
+
+  link.download = 'cropped.png';
+  link.href = document.getElementById('canvasOutput').toDataURL();
+  link.click();
 }

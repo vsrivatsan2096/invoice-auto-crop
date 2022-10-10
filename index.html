@@ -18,22 +18,24 @@
     <p>Time Taken (in secs) : <span id="time-taken"></span></p>
     <p>Image Size (in MB) : <span id="image-size"></span></p>
     <input type="file" id="fileInput" name="file" />
-    <button id="transformAndCropButton" style="display:none;">Transform and Crop</button>
-    <br />
+    <br/><br/>
+    <input type="button" id="transformAndCropButton" name="Crop" value="Crop" style="display:none;"/>
+    <br/><br/>
+    <input type="button" id="downloadCroped" name="Download" value="Download" style="display:none;"/>
     <div class="mt-3 row">
-      <div id="input-image" class="col" style="display: none">
+      <div id="input-image" class="col-12" style="display: none">
         <h6>Input Image</h6>
         <div class="caption">
           <img class="img-fluid" id="canvasInput" alt="No Image" />
         </div>
       </div>
-      <div id="intermediate-image" class="col" style="display: none">
+      <div id="intermediate-image" class="col-12" style="display: none">
         <h6>Intermediate Image</h6>
         <div class="caption">
           <canvas class="img-fluid" id="canvasIntermediate" alt="No Image" />
         </div>
       </div>
-      <div id="output-image" class="col" style="display: none">
+      <div id="output-image" class="col-12" style="display: none">
         <h6>Output Image</h6>
         <div class="caption">
           <canvas id="canvasOutput"></canvas>
